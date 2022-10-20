@@ -4,12 +4,7 @@ import (
 	"api/invoice"
 	"context"
 	"database/sql"
-	"flag"
-	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -19,7 +14,6 @@ import (
 const dbsource = "postgresql://postgres:postgres@db:5432/invoice?sslmode=disable"
 
 func main() {
-	var httpAddr = flag.String("http", ":8080", "http listen address")
 	var logger log.Logger
 
 	logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
@@ -38,27 +32,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	flag.Parse()
-	ctx := context.Background()
-
 	repository := invoice.NewRepository(db, logger)
 	srv := invoice.NewService(repository, logger)
 
-	errs := make(chan error)
+	ctx := context.Background()
 
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		errs <- fmt.Errorf("%s", <-c)
-	}()
-
-	endpoints := invoice.MakeEndpoints(srv)
-
-	go func() {
-		fmt.Println("listening on port", *httpAddr)
-		handler := invoice.NewHTTPServer(ctx, endpoints)
-		errs <- http.ListenAndServe(*httpAddr, handler)
-	}()
-
-	level.Error(logger).Log("exit", <-errs)
+	router := invoice.NewRouter(ctx, srv)
+	router.Run(":5000")
 }

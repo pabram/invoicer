@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/gofrs/uuid"
 )
 
 type Service interface {
@@ -28,11 +27,7 @@ func NewService(repository Repository, logger log.Logger) Service {
 func (s *service) Create(ctx context.Context, companyName string, price int) (Invoice, error) {
 	logger := log.With(s.logger, "method Create invoice")
 
-	uuid, _ := uuid.NewV4()
-	id := uuid.String()
-
 	invoice := Invoice{
-		ID:          id,
 		CompanyName: companyName,
 		Price:       price,
 	}
@@ -41,8 +36,6 @@ func (s *service) Create(ctx context.Context, companyName string, price int) (In
 		level.Error(logger).Log("error during creating invoice", err)
 		return Invoice{}, nil
 	}
-
-	logger.Log("succesfully created an invoice")
 
 	return invoice, nil
 }
